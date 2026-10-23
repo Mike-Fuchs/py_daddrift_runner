@@ -1,0 +1,4 @@
+                mode          dep_height            max_dist         field_count
+                   1               0.100                 300                   0
+dsd_file_name:           XR11003.txt              
+landscape_file_name:     

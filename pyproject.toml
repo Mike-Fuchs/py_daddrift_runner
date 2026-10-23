@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "py_daddrift_runner"
+dynamic = ["version"]
+description = "Run the DAD-drift spray drift model from Python."
+authors = [
+    { name = "Mike Devin Fuchs" }
+]
+license = "GPL-3.0-or-later"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "rasterio",
+    "scipy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[project.urls]
+Repository = "https://github.com/Mike-Fuchs/py_daddrift_runner"
+"DAD-drift" = "https://github.com/Mike-Fuchs/DAD-drift"
+
+[tool.setuptools.packages.find]
+include = ["py_daddrift_runner*"]
+
+[tool.setuptools.package-data]
+py_daddrift_runner = ["bin/*.exe"]
+
+[tool.setuptools_scm]

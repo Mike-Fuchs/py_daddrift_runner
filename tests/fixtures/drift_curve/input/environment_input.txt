@@ -1,0 +1,3 @@
+         temperature            humidity          wind_speed         wind_height      wind_direction    ambient_pressure    sigma_horizontal      sigma_vertical    roughness_height       canopy_height                 LAI              k_skew
+                [°C]                 [-]               [m/s]                 [m]                [°]                [kPa]                 [m]                 [m]                 [m]                 [m]               m²/m²                   -
+               20.00                0.70                3.00                2.00               90.00              100.00            0.70e+00            1.95e-01            5.00e-02                0.02                0.50                3.00
