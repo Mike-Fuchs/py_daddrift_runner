@@ -205,6 +205,15 @@ def _read_table(path, columns):
     return {name: float(v) for (name, _), v in zip(columns, values)}
 
 
+def read_droplet_spectrum(path):
+    """Read a DAD-drift droplet spectrum file (two header lines, then mean_size [m], cum_fract [-])."""
+    rows = [line.split() for line in _read_lines(path)[2:] if line.strip()]
+    return pd.DataFrame(
+        np.array(rows, dtype=float),
+        columns=[c[0] for c in DROPLET_SPECTRUM_COLUMNS],
+    )
+
+
 def read_input_files(input_folder):
     """Read an existing DAD-drift input folder into a DriftInput (cf. rdmfr::read_input_files)."""
     input_folder = Path(input_folder)
@@ -215,11 +224,7 @@ def read_input_files(input_folder):
     if int(field_count) > 1:
         raise NotImplementedError("Multi-field input (field_count > 1) is not supported.")
 
-    spectrum_rows = [line.split() for line in _read_lines(input_folder / dsd_file_name)[2:] if line.strip()]
-    spectrum = pd.DataFrame(
-        np.array(spectrum_rows, dtype=float),
-        columns=[c[0] for c in DROPLET_SPECTRUM_COLUMNS],
-    )
+    spectrum = read_droplet_spectrum(input_folder / dsd_file_name)
 
     landscape = None
     landscape_file_name = "landscape.asc"

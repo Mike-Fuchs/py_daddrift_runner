@@ -80,7 +80,12 @@ as DataFrame. Raises `RuntimeError` with the exe's output if it fails or writes 
 
 `read_input_files(folder)` reads an existing DAD-drift input folder into a `DriftInput`
 (cf. `rdmfr::read_input_files`); `write_input_files(input_data, folder)` writes one.
-Single-field input only.
+Single-field input only. Values are written at full precision.
+
+### `read_droplet_spectrum`
+
+`read_droplet_spectrum(path)` reads a single droplet spectrum file (e.g. a measured
+nozzle DSD) into the DataFrame `DriftInput.droplet_spectrum` expects.
 
 ### `generate_dsd`
 

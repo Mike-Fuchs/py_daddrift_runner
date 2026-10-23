@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from py_daddrift_runner import DriftInput, read_input_files, write_input_files
+from py_daddrift_runner import DriftInput, read_droplet_spectrum, read_input_files, write_input_files
 from py_daddrift_runner.inputs import (
     APPLICATION_FILE, CONTROL_FILE, ENVIRONMENT_FILE,
 )
@@ -71,6 +71,15 @@ def test_values_written_at_full_precision(tmp_path):
     assert reread.environment == data.environment
     assert reread.control == data.control
     assert reread.droplet_spectrum.equals(data.droplet_spectrum)
+
+
+def test_read_droplet_spectrum():
+    path = FIXTURES / "single_field" / "input" / "XR11003.txt"
+    spectrum = read_droplet_spectrum(path)
+    data_lines = [line for line in _lines(path)[2:] if line.strip()]
+    assert list(spectrum.columns) == ["mean_size", "cum_fract"]
+    assert len(spectrum) == len(data_lines)
+    assert spectrum.iloc[0].tolist() == [1.25e-05, 4.6352378282e-03]
 
 
 def test_landscape_identical(tmp_path):
