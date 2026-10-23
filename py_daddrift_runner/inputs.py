@@ -3,9 +3,11 @@
 
 """The DAD-drift input data set and its file I/O.
 
-The exe reads four fixed-width text files from input/ (20 characters per
-column, UTF-8) plus, in landscape mode, an ESRI ASCII grid. Values are written
-in the units the exe expects; nothing is converted here.
+The exe reads four text files from input/ (UTF-8) plus, in landscape mode, an
+ESRI ASCII grid. It reads them list-directed (read(unit,*)), so only whitespace
+between values matters; the 20-character columns are kept for readability.
+Values are written in the units the exe expects at full precision; nothing is
+converted here.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,43 +16,42 @@ import numpy as np
 import pandas as pd
 import rasterio
 
-# (name, unit, format) — "f" = fixed point, "e" = scientific
+# (name, unit)
 APPLICATION_COLUMNS = (
-    ("tractor_speed", "[m/s]", "f"),
-    ("boom_width", "[m]", "f"),
-    ("boom_height", "[m]", "f"),
-    ("nozzle_angle", "[°]", "f"),
-    ("application_pres", "[kPa]", "f"),
-    ("app_rate_mh", "[m³/h]", "e"),
-    ("app_rate_mha", "[m³/ha]", "e"),
-    ("app_rate_kgha", "[kg/ha]", "e"),
-    ("sol_concentration", "[kg/m³]", "e"),
-    ("AI_density", "[kg/m³]", "f"),
-    ("AI_molar_mass", "[kg/mol]", "e"),
-    ("AI_vapor_pressure", "[Pa]", "e"),
-    ("swath_number", "[-]", "f"),
-    ("field_length", "[m]", "f"),
+    ("tractor_speed", "[m/s]"),
+    ("boom_width", "[m]"),
+    ("boom_height", "[m]"),
+    ("nozzle_angle", "[°]"),
+    ("application_pres", "[kPa]"),
+    ("app_rate_mh", "[m³/h]"),
+    ("app_rate_mha", "[m³/ha]"),
+    ("app_rate_kgha", "[kg/ha]"),
+    ("sol_concentration", "[kg/m³]"),
+    ("AI_density", "[kg/m³]"),
+    ("AI_molar_mass", "[kg/mol]"),
+    ("AI_vapor_pressure", "[Pa]"),
+    ("swath_number", "[-]"),
+    ("field_length", "[m]"),
 )
 
 ENVIRONMENT_COLUMNS = (
-    ("temperature", "[°C]", "f"),
-    ("humidity", "[-]", "f"),
-    ("wind_speed", "[m/s]", "f"),
-    ("wind_height", "[m]", "f"),
-    ("wind_direction", "[°]", "f"),
-    ("ambient_pressure", "[kPa]", "f"),
-    ("sigma_horizontal", "[m]", "e"),
-    ("sigma_vertical", "[m]", "e"),
-    ("roughness_height", "[m]", "e"),
-    ("canopy_height", "[m]", "f"),
-    ("LAI", "m²/m²", "f"),
-    ("k_skew", "-", "f"),
+    ("temperature", "[°C]"),
+    ("humidity", "[-]"),
+    ("wind_speed", "[m/s]"),
+    ("wind_height", "[m]"),
+    ("wind_direction", "[°]"),
+    ("ambient_pressure", "[kPa]"),
+    ("sigma_horizontal", "[m]"),
+    ("sigma_vertical", "[m]"),
+    ("roughness_height", "[m]"),
+    ("canopy_height", "[m]"),
+    ("LAI", "m²/m²"),
+    ("k_skew", "-"),
 )
 
-# (name, unit, printf format)
 DROPLET_SPECTRUM_COLUMNS = (
-    ("mean_size", "[m]", "{:20.6e}"),
-    ("cum_fract", "[-]", "{:20.10e}"),
+    ("mean_size", "[m]"),
+    ("cum_fract", "[-]"),
 )
 
 CONTROL_KEYS = ("mode", "dep_height", "max_dist", "dsd_file_name")
@@ -109,17 +110,19 @@ def _fixed_row(values, width=20):
 
     Padding is counted in bytes, not characters: the reference files are
     written by Fortran, so a column holding a multi-byte character such as
-    '°' or '³' carries one less space.
+    '°' or '³' carries one less space. At least one space is kept, so a value
+    wider than the column stays separated from the previous one.
     """
     cells = []
     for value in values:
         text = f"{value}"
-        cells.append(" " * max(width - len(text.encode("utf-8")), 0) + text)
+        cells.append(" " * max(width - len(text.encode("utf-8")), 1) + text)
     return "".join(cells)
 
 
-def _fmt(value, kind):
-    return ("{:.2f}" if kind == "f" else "{:.2e}").format(float(value))
+def _fmt(value):
+    """Shortest text that reads back as exactly the same float."""
+    return repr(float(value))
 
 
 def _write_lines(path, lines):
@@ -129,9 +132,9 @@ def _write_lines(path, lines):
 
 def _write_table(path, columns, values):
     _write_lines(path, [
-        _fixed_row([name for name, _, _ in columns]),
-        _fixed_row([unit for _, unit, _ in columns]),
-        _fixed_row([_fmt(values[name], kind) for name, _, kind in columns]),
+        _fixed_row([name for name, _ in columns]),
+        _fixed_row([unit for _, unit in columns]),
+        _fixed_row([_fmt(values[name]) for name, _ in columns]),
     ])
 
 
@@ -145,8 +148,8 @@ def _write_control(path, control, landscape_file_name):
         _fixed_row(("mode", "dep_height", "max_dist", "field_count")),
         _fixed_row([
             f"{mode:d}",
-            "{:.3f}".format(float(control["dep_height"])),
-            "{:.0f}".format(float(control["max_dist"])),
+            _fmt(control["dep_height"]),
+            _fmt(control["max_dist"]),
             f"{field_count:d}",
         ]),
         "{:<25}{:<25}".format("dsd_file_name:", control["dsd_file_name"]),
@@ -156,11 +159,11 @@ def _write_control(path, control, landscape_file_name):
 
 def _write_droplet_spectrum(path, spectrum):
     lines = [
-        _fixed_row([name for name, _, _ in DROPLET_SPECTRUM_COLUMNS]),
-        _fixed_row([unit for _, unit, _ in DROPLET_SPECTRUM_COLUMNS]),
+        _fixed_row([name for name, _ in DROPLET_SPECTRUM_COLUMNS]),
+        _fixed_row([unit for _, unit in DROPLET_SPECTRUM_COLUMNS]),
     ]
     for row in spectrum[[c[0] for c in DROPLET_SPECTRUM_COLUMNS]].itertuples(index=False):
-        lines.append("".join(fmt.format(float(v)) for v, (_, _, fmt) in zip(row, DROPLET_SPECTRUM_COLUMNS)))
+        lines.append(_fixed_row([_fmt(v) for v in row]))
     _write_lines(path, lines)
 
 
@@ -199,7 +202,7 @@ def _read_table(path, columns):
     values = _read_lines(path)[2].split()
     if len(values) != len(columns):
         raise ValueError(f"{path} has {len(values)} values, expected {len(columns)}.")
-    return {name: float(v) for (name, _, _), v in zip(columns, values)}
+    return {name: float(v) for (name, _), v in zip(columns, values)}
 
 
 def read_input_files(input_folder):
